@@ -32,7 +32,11 @@ import string
 #	if bdir == '' and pgdump == '':
 #		print 'backup.py -d <backup dir>'
 #		sys.exit(1)
-		
+
+
+next_pair_comp=0
+
+
 def first(a, index):
 	if a[index] == '':
 		return ''
@@ -41,7 +45,11 @@ def first(a, index):
 		if m:
 			return first(a, int(m.group(1)))
 		else:
-			return a[index][0]
+			m = re.search('^\(([0-9]+?)\)', a[index])
+			if m:
+				return m.group(0)
+			else:
+				return a[index][0]
 
 def last(a, index):
 	if a[index] == '':
@@ -51,7 +59,11 @@ def last(a, index):
 		if m:
 			return last(a, int(m.group(1)))
 		else:
-			return a[index][-1]
+			m = re.search('\(([0-9]+?)\)$', a[index])
+			if m:
+				return m.group(0)
+			else:
+				return a[index][-1]
 
 def left_pop(a, index):
 	f = first(a, index)
@@ -62,7 +74,10 @@ def left_pop(a, index):
 	m = re.search('^<([0-9]+?)>', a[index])
 	if m:
 		left_pop(a, int(m.group(1)))
-		a[index] = a[index][1:]
+
+	m = re.search('^\(([0-9]+?)\)', a[index])
+	if m:
+		a[index] = a[index][len(m.group(0)):]
 	else:
 		a[index] = a[index][1:]
 
@@ -75,10 +90,13 @@ def right_pop(a, index):
 	if l == '':
 		return
 
-	m = re.match('<([0-9]+?)>$', a[index])
+	m = re.search('<([0-9]+?)>$', a[index])
 	if m:
 		right_pop(a, int(m.group(1)))
-		a[index] = a[index][:-1]
+
+	m = re.search('\(([0-9]+?)\)$', a[index])
+	if m:
+		a[index] = a[index][:-len(m.group(0))]
 	else:
 		a[index] = a[index][:-1]
 
@@ -113,27 +131,40 @@ def preprocessing(a, n, mn):
 			remove_nonterminal(a, i)
 
 def pair_comp(a, mn, pair):
-	ii = len(a)
+	global next_pair_comp
 
-	for j in range(mn):
-		f = first(a, j)
-		l = last(a, j)
+	m = re.search('^\(([0-9]+?)\)', pair)
+	if m:
+		first_pair = m.group(0)
+	else:
+		first_pair = pair[0]
 
-		for i in range(mn):
-			b = pair[0] + '<' + str(j) + '>'
-			if b in a[i] and pair[-1] == f:
+	m = re.search('\(([0-9]+?)\)$', pair)
+	if m:
+		last_pair = m.group(0)
+	else:
+		last_pair = pair[-1]
+
+	for j in range(mn + 1):
+		for i in range(mn + 1):
+			f = first(a, j)
+			b = first_pair + '<' + str(j) + '>'
+			if b in a[i] and last_pair == f:
 				left_pop(a, j)
 
-			b = '<' + str(j) + '>' + pair[-1]
-			if b in a[i] and pair[0] == l:
+			l = last(a, j)
+			b = '<' + str(j) + '>' + last_pair
+			if b in a[i] and first_pair == l:
 				right_pop(a, j)
 
-		a[j] = string.replace(a[j], pair, '<' + str(ii) + '>')
+		a[j] = string.replace(a[j], pair, '(' + str(next_pair_comp) + ')')
 
-	a.append(pair)
 	for i in range(mn):
 		if a[i] == '':
 			remove_nonterminal(a, i)
+
+	next_pair_comp += 1
+
 
 
 if __name__ == "__main__":
@@ -165,7 +196,19 @@ if __name__ == "__main__":
 
 	print '################################'
 
-	pair_comp(a, 7, 'ab')
+	pair_comp(a, 8, 'ab')
+	for i in range(len(a)):
+		print i, ':', a[i]
+
+	print '################################'
+
+	pair_comp(a, 8, '(0)b')
+	for i in range(len(a)):
+		print i, ':', a[i]
+
+	print '################################'
+
+	pair_comp(a, 8, '(1)(1)')
 	for i in range(len(a)):
 		print i, ':', a[i]
 
