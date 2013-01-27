@@ -119,7 +119,7 @@ def remove_nonterminal(a, nonterminal):
 	for i in range(len(a)):
 		a[i] = string.replace(a[i], '<' + str(nonterminal) + '>', '')
 
-def preprocessing(a, n, mn):
+def preprocessing(a, n, nm):
 	for i in range(len(a)):
 		if i == n or i == mn:
 			continue
@@ -130,7 +130,7 @@ def preprocessing(a, n, mn):
 		if a[i] == '':
 			remove_nonterminal(a, i)
 
-def pair_comp(a, mn, pair):
+def pair_comp(a, nm, pair):
 	global next_pair_comp
 
 	m = re.search('^\(([0-9]+?)\)', pair)
@@ -145,8 +145,8 @@ def pair_comp(a, mn, pair):
 	else:
 		last_pair = pair[-1]
 
-	for j in range(mn + 1):
-		for i in range(mn + 1):
+	for j in range(nm + 0):
+		for i in range(nm + 0):
 			f = first(a, j)
 			b = first_pair + '<' + str(j) + '>'
 			if b in a[i] and last_pair == f:
@@ -164,6 +164,8 @@ def pair_comp(a, mn, pair):
 			remove_nonterminal(a, i)
 
 	next_pair_comp += 1
+
+def rem_cr_blocks(a, n, nm)
 
 
 def print_rules(a):
