@@ -166,10 +166,18 @@ def pair_comp(a, mn, pair):
 	next_pair_comp += 1
 
 
+def print_rules(a):
+	print '########################################'
 
-if __name__ == "__main__":
-	#main(sys.argv[1:])
+	for i in range(len(a)):
+		print i, ':', a[i]
 
+	print '########################################'
+
+
+
+
+def gram1():
 	a = []
 	a.append('abb')
 	a.append('<0>')
@@ -181,37 +189,28 @@ if __name__ == "__main__":
 	a.append('w<3><6>c')
 	a.append('<5>b<7>')
 
+	print '########################################'
 	print val(a, 2)
 	print val(a, 8)
-	print '################################'
-
-	for i in range(len(a)):
-		print i, ':', a[i]
-
-	print '################################'	
+	print_rules(a)
 
 	preprocessing(a, 2, 8)
-	for i in range(len(a)):
-		print i, ':', a[i]
-
-	print '################################'
+	print_rules(a)
 
 	pair_comp(a, 8, 'ab')
-	for i in range(len(a)):
-		print i, ':', a[i]
-
-	print '################################'
+	print_rules(a)
 
 	pair_comp(a, 8, '(0)b')
-	for i in range(len(a)):
-		print i, ':', a[i]
-
-	print '################################'
+	print_rules(a)
 
 	pair_comp(a, 8, '(1)(1)')
-	for i in range(len(a)):
-		print i, ':', a[i]
+	print_rules(a)
 
-	print '################################'
 	print val(a, 2)
 	print val(a, 8)
+	print '########################################'
+
+
+if __name__ == "__main__":
+	#main(sys.argv[1:])
+	gram1()
