@@ -43,13 +43,13 @@ def lreplace(pattern, sub, string):
     """
     Replaces 'pattern' in 'string' with 'sub' if 'pattern' starts 'string'.
     """
-    return re.sub('^%s' % pattern, sub, string)
+    return re.sub('^%s' % re.escape(pattern), sub, string)
 
 def rreplace(pattern, sub, string):
     """
     Replaces 'pattern' in 'string' with 'sub' if 'pattern' ends 'string'.
     """
-    return re.sub('%s$' % pattern, sub, string)
+    return re.sub('%s$' % re.escape(pattern), sub, string)
 
 
 
@@ -140,7 +140,17 @@ def next_symbol(a, nonterminal, prefix):
 	if a[nonterminal] == '':
 		return ''
 
-	m = re.search('^' + prefix + '((\([0-9]+?\))|(\(.\|[2-9]+?\))|(<[0-9]+?>)|(.))', a[nonterminal])
+	m = re.search('^' + re.escape(prefix) + '((\([0-9]+?\))|(\(.\|[2-9]+?\))|(<[0-9]+?>)|(.))', a[nonterminal])
+	if m:
+		return m.group(1)
+	else:
+		return ''
+
+def prev_symbol(a, nonterminal, suffix):
+	if a[nonterminal] == '':
+		return ''
+
+	m = re.search('((\([0-9]+?\))|(\(.\|[2-9]+?\))|(<[0-9]+?>)|(.))' + re.escape(suffix) + '$', a[nonterminal])
 	if m:
 		return m.group(1)
 	else:
@@ -159,10 +169,9 @@ def remove_prefix(a, index):
 	symbol = ''
 	len_block = 0
 	while s != '':
-		#print s
-		m = re.search('(<[0-9]+?>)|(.)', s)
-		if m.group(2):
-			if block == '':
+		m = re.search('(<[0-9]+?>)|(\(.\|[2-9]+?\))|(.)', s)
+		if m.group(3):
+			if symbol == '':
 				block = s
 				symbol = s
 				len_block += 1
@@ -173,61 +182,97 @@ def remove_prefix(a, index):
 				break
 		elif m.group(1):
 			nonterminal = int(m.group(1)[1:-1])
-			m = re.search('^(.)$|^\((.)\|[2-9]+?\)$', a[nonterminal])
-			if m:
-				symbol = m.group(1) if m.group(1) else m.group(2)
-				m = re.search('^<' + str(nonterminal) + '>' + symbol, a[index])
+
+			if symbol == '':
+				m = re.search('^(.)$|^\((.)\|[2-9]+?\)$', a[nonterminal])
 				if m:
-					left_pop(a, nonterminal)
-					remove_nonterminal(a, nonterminal)
+					sym = m.group(1) if m.group(1) else m.group(2)
+					m = re.search('^<' + str(nonterminal) + '>' + sym, a[index])
+					if m:
+						left_pop(a, nonterminal)
+						remove_nonterminal(a, nonterminal)
+					else:
+						break
 				else:
 					break
 			else:
+				m = re.search('^(' + symbol + ')|^\((' + symbol + ')\|[2-9]+?\)', a[nonterminal])
+				if m:
+					left_pop(a, nonterminal)
+				else:
+					break
+		elif m.group(2):
+			if symbol == '':
+				symbol = s[1]
+				block = s
+				len_block += int(s[3:-1])
+			elif symbol == s[1]:
+				block += s
+				len_block += int(s[3:-1])
+			else:
 				break
-			#print m.group(1)
 
 		s = next_symbol(a, index, block)
 
 	if len_block >= 2:
 		a[index] = lreplace(block, '(' + symbol + '|' + str(len_block) + ')', a[index])
 
-	#m = re.search('^' + a[index][0] + '+', a[index])
-	#m = re.search('^<([0-9]+?)>', a[index])
-	#if m:
-	#	nonterminal = int(m.group(1))
-	#	m = re.search('^(.)$|^\((.)\|[2-9]+?\)$', a[nonterminal])
-	#	if m:
-	#		symbol = m.group(1) if m.group(1) else m.group(2)
-	#		m = re.search('^<' + str(nonterminal) + '>' + symbol, a[index])
-	#		if m:
-	#			left_pop(a, nonterminal)
-	#			remove_nonterminal(a, nonterminal)
+def remove_suffix(a, index):
+	if a[index] == '':
+		return
 
-	#f = first(a, index)
-	#if len(f) == 1:
-	#	m = re.search('^(' + f + '+)(<[0-9]+?>)', a[index])
-		#if m:
-	#else:
-	#	m = re.search('\((.)\|[2-9]+\)', f)
-	#	if m:
-	#		m = re.search('^\(' + m.group(1) + '\|[2-9]+\)(' + m.group(1) + '+)<([0-9]+?)>', a[index])
+	s = prev_symbol(a, index, '')
+	block = ''
+	symbol = ''
+	len_block = 0
+	while s != '':
+		m = re.search('(<[0-9]+?>)|(\(.\|[2-9]+?\))|(.)', s)
+		if m.group(3):
+			if symbol == '':
+				block = s
+				symbol = s
+				len_block += 1
+			elif s == symbol:
+				block += s
+				len_block += 1
+			else:
+				break
+		elif m.group(1):
+			nonterminal = int(m.group(1)[1:-1])
 
-	#if m:
-	#	f = first(a, int(m.group(2)))
-	#	fm = re.search('\((.)\|([2-9]+?)\)', f)
+			if symbol == '':
+				m = re.search('^(.)$|^\((.)\|[2-9]+?\)$', a[nonterminal])
+				if m:
+					sym = m.group(1) if m.group(1) else m.group(2)
+					m = re.search('^<' + str(nonterminal) + '>' + sym, a[index])
+					if m:
+						left_pop(a, nonterminal)
+						remove_nonterminal(a, nonterminal)
+					else:
+						break
+				else:
+					break
+			else:
+				m = re.search('(' + symbol + ')$|\((' + symbol + ')\|[2-9]+?\)$', a[nonterminal])
+				if m:
+					left_pop(a, nonterminal)
+				else:
+					break
+		elif m.group(2):
+			if symbol == '':
+				symbol = s[1]
+				block = s
+				len_block += int(s[3:-1])
+			elif symbol == s[1]:
+				block += s
+				len_block += int(s[3:-1])
+			else:
+				break
 
-	#	if fm:
-	#		if fm.group(1) == f:
-	#			left_pop(a, m.group(2))
-	#	elif a[index][0] == f:
-	#		left_pop(a, m.group(2))
+		s = next_symbol(a, index, block)
 
-	#m = re.search('^(' + f + '+)|((' + f + '+)\(' + a[index] + '\|([2-9]+?)\))', a[index])
-	#if m:
-	#	if m.group(1) and len(m.group(1)) >= 2:
-	#		a[index] = string.replace(a[index], m.group(1), '(' + f + '|' + str(len(m.group(1))) + ')')
-	#	elif m.group(2):
-	#		a[index] = string.replace(a[index], m.group(2), '(' + f + '|' + str(len(m.group(3)) + int(m.group(4))) + ')')
+	if len_block >= 2:
+		a[index] = lreplace(block, '(' + symbol + '|' + str(len_block) + ')', a[index])
 
 
 def preprocessing(a, n, nm):
@@ -282,6 +327,12 @@ def rem_cr_blocks(a, n, nm):
 			continue
 
 		remove_prefix(a, i)
+		remove_suffix(a, i)
+		left_pop(a, i)
+		right_pop(a, i)
+
+		if a[i] == '':
+			remove_nonterminal(a, i)
 
 
 def print_rules(a):
