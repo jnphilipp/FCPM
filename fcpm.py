@@ -52,119 +52,135 @@ def rreplace(pattern, sub, string):
     return re.sub('%s$' % re.escape(pattern), sub, string)
 
 
+def is_terminal(symbol):
+	m = re.search('<([0-9]+?)>', symbol)
 
-def first(a, index):
-	if a[index] == '':
+	if m:
+		return False
+	else:
+		return True
+
+def is_nonterminal(symbol):
+	m = re.search('<([0-9]+?)>', symbol)
+
+	if m:
+		return True
+	else:
+		return False
+
+
+def first(g, index):
+	if g[index] == '':
 		return ''
 	else:
-		m = re.search('^<([0-9]+?)>', a[index])
+		m = re.search('^<([0-9]+?)>', g[index])
 		if m:
-			return first(a, int(m.group(1)))
+			return first(g, int(m.group(1)))
 		else:
-			#m = re.search('^\(([0-9]+?)\)', a[index])
-			m = re.search('^(\([0-9]+?\))|^(\(.\|[2-9]+?\))', a[index])
+			#m = re.search('^\(([0-9]+?)\)', g[index])
+			m = re.search('^(\([0-9]+?\))|^(\(.\|[2-9]+?\))', g[index])
 			if m:
 				return m.group(0)
 			else:
-				return a[index][0]
+				return g[index][0]
 
-def last(a, index):
-	if a[index] == '':
+def last(g, index):
+	if g[index] == '':
 		return ''
 	else:
-		m = re.search('<([0-9]+?)>$', a[index])
+		m = re.search('<([0-9]+?)>$', g[index])
 		if m:
-			return last(a, int(m.group(1)))
+			return last(g, int(m.group(1)))
 		else:
-			#m = re.search('\(([0-9]+?)\)$', a[index])
-			m = re.search('\((([0-9]+?)|(.\|[2-9]+?))\)$', a[index])
+			#m = re.search('\(([0-9]+?)\)$', g[index])
+			m = re.search('\((([0-9]+?)|(.\|[2-9]+?))\)$', g[index])
 			if m:
 				return m.group(0)
 			else:
-				return a[index][-1]
+				return g[index][-1]
 
-def left_pop(a, index):
-	f = first(a, index)
+def left_pop(g, index):
+	f = first(g, index)
 
 	if f == '':
 		return
 
-	m = re.search('^<([0-9]+?)>', a[index])
+	m = re.search('^<([0-9]+?)>', g[index])
 	if m:
-		left_pop(a, int(m.group(1)))
+		left_pop(g, int(m.group(1)))
 
-	#m = re.search('^\(([0-9]+?)\)', a[index])
+	#m = re.search('^\(([0-9]+?)\)', g[index])
 	#^(\([0-9]+?\))|^(\(.\|[2-9]+?\))
-	m = re.search('^(\([0-9]+?\))|^(\(.\|[2-9]+?\))', a[index])
+	m = re.search('^(\([0-9]+?\))|^(\(.\|[2-9]+?\))', g[index])
 	if m:
-		a[index] = a[index][len(m.group(0)):]
+		g[index] = g[index][len(m.group(0)):]
 	else:
-		a[index] = a[index][1:]
+		g[index] = g[index][1:]
 
-	for i in range(len(a)):
-		a[i] = string.replace(a[i], '<' + str(index) + '>', f + '<' + str(index) + '>')
+	for i in range(len(g)):
+		g[i] = string.replace(g[i], '<' + str(index) + '>', f + '<' + str(index) + '>')
 
-def right_pop(a, index):
-	l = last(a, index)
+def right_pop(g, index):
+	l = last(g, index)
 
 	if l == '':
 		return
 
-	m = re.search('<([0-9]+?)>$', a[index])
+	m = re.search('<([0-9]+?)>$', g[index])
 	if m:
-		right_pop(a, int(m.group(1)))
+		right_pop(g, int(m.group(1)))
 
-	#m = re.search('\(([0-9]+?)\)$', a[index])
-	m = re.search('\((([0-9]+?)|(.\|[2-9]+?))\)$', a[index])
+	#m = re.search('\(([0-9]+?)\)$', g[index])
+	m = re.search('\((([0-9]+?)|(.\|[2-9]+?))\)$', g[index])
 	if m:
-		a[index] = a[index][:-len(m.group(0))]
+		g[index] = g[index][:-len(m.group(0))]
 	else:
-		a[index] = a[index][:-1]
+		g[index] = g[index][:-1]
 
-	for i in range(len(a)):
-		a[i] = string.replace(a[i], '<' + str(index) + '>', '<' + str(index) + '>' + l)
+	for i in range(len(g)):
+		g[i] = string.replace(g[i], '<' + str(index) + '>', '<' + str(index) + '>' + l)
 
-def val(a, index):
-	if a[index] == '':
+def val(g, index):
+	if g[index] == '':
 		return ''
 	else:
-		val_index = a[index]
-		nonterminals = set(re.findall('<([0-9]+?)>', a[index]))
+		val_index = g[index]
+		nonterminals = set(re.findall('<([0-9]+?)>', g[index]))
 		
 		for nonterminal in nonterminals:
-			val_index = string.replace(val_index, '<' + str(nonterminal) + '>', val(a, int(nonterminal)))
+			val_index = string.replace(val_index, '<' + str(nonterminal) + '>', val(g, int(nonterminal)))
 
 		return val_index
 
-def next_symbol(a, nonterminal, prefix):
-	if a[nonterminal] == '':
+def next_symbol(g, nonterminal, prefix):
+	if g[nonterminal] == '':
 		return ''
 
-	m = re.search('^' + re.escape(prefix) + '((\([0-9]+?\))|(\(.\|[2-9]+?\))|(<[0-9]+?>)|(.))', a[nonterminal])
+	m = re.search('^' + re.escape(prefix) + '((\([0-9]+?\))|(\(.\|[2-9]+?\))|(<[0-9]+?>)|(.))', g[nonterminal])
 	if m:
 		return m.group(1)
 	else:
 		return ''
 
-def prev_symbol(a, nonterminal, suffix):
-	if a[nonterminal] == '':
+def prev_symbol(g, nonterminal, suffix):
+	if g[nonterminal] == '':
 		return ''
 
-	m = re.search('((\([0-9]+?\))|(\(.\|[2-9]+?\))|(<[0-9]+?>)|(.))' + re.escape(suffix) + '$', a[nonterminal])
+	m = re.search('((\([0-9]+?\))|(\(.\|[2-9]+?\))|(<[0-9]+?>)|(.))' + re.escape(suffix) + '$', g[nonterminal])
 	if m:
 		return m.group(1)
 	else:
 		return ''
 
-def remove_nonterminal(a, nonterminal):
-	for i in range(len(a)):
-		a[i] = string.replace(a[i], '<' + str(nonterminal) + '>', '')
+def remove_nonterminal(g, nonterminal):
+	for i in range(len(g)):
+		g[i] = string.replace(g[i], '<' + str(nonterminal) + '>', '')
 
-def remove_prefix(a, index):
-	if a[index] == '':
+def remove_prefix(g, index):
+	if g[index] == '':
 		return
 
-	s = next_symbol(a, index, '')
+	s = next_symbol(g, index, '')
 	block = ''
 	symbol = ''
 	len_block = 0
@@ -184,21 +200,21 @@ def remove_prefix(a, index):
 			nonterminal = int(m.group(1)[1:-1])
 
 			if symbol == '':
-				m = re.search('^(.)$|^\((.)\|[2-9]+?\)$', a[nonterminal])
+				m = re.search('^(.)$|^\((.)\|[2-9]+?\)$', g[nonterminal])
 				if m:
 					sym = m.group(1) if m.group(1) else m.group(2)
-					m = re.search('^<' + str(nonterminal) + '>' + sym, a[index])
+					m = re.search('^<' + str(nonterminal) + '>' + sym, g[index])
 					if m:
-						left_pop(a, nonterminal)
-						remove_nonterminal(a, nonterminal)
+						left_pop(g, nonterminal)
+						remove_nonterminal(g, nonterminal)
 					else:
 						break
 				else:
 					break
 			else:
-				m = re.search('^(' + symbol + ')|^\((' + symbol + ')\|[2-9]+?\)', a[nonterminal])
+				m = re.search('^(' + symbol + ')|^\((' + symbol + ')\|[2-9]+?\)', g[nonterminal])
 				if m:
-					left_pop(a, nonterminal)
+					left_pop(g, nonterminal)
 				else:
 					break
 		elif m.group(2):
@@ -212,16 +228,16 @@ def remove_prefix(a, index):
 			else:
 				break
 
-		s = next_symbol(a, index, block)
+		s = next_symbol(g, index, block)
 
 	if len_block >= 2:
-		a[index] = lreplace(block, '(' + symbol + '|' + str(len_block) + ')', a[index])
+		g[index] = lreplace(block, '(' + symbol + '|' + str(len_block) + ')', g[index])
 
-def remove_suffix(a, index):
-	if a[index] == '':
+def remove_suffix(g, index):
+	if g[index] == '':
 		return
 
-	s = prev_symbol(a, index, '')
+	s = prev_symbol(g, index, '')
 	block = ''
 	symbol = ''
 	len_block = 0
@@ -241,21 +257,21 @@ def remove_suffix(a, index):
 			nonterminal = int(m.group(1)[1:-1])
 
 			if symbol == '':
-				m = re.search('^(.)$|^\((.)\|[2-9]+?\)$', a[nonterminal])
+				m = re.search('^(.)$|^\((.)\|[2-9]+?\)$', g[nonterminal])
 				if m:
 					sym = m.group(1) if m.group(1) else m.group(2)
-					m = re.search('^<' + str(nonterminal) + '>' + sym, a[index])
+					m = re.search('^<' + str(nonterminal) + '>' + sym, g[index])
 					if m:
-						left_pop(a, nonterminal)
-						remove_nonterminal(a, nonterminal)
+						left_pop(g, nonterminal)
+						remove_nonterminal(g, nonterminal)
 					else:
 						break
 				else:
 					break
 			else:
-				m = re.search('(' + symbol + ')$|\((' + symbol + ')\|[2-9]+?\)$', a[nonterminal])
+				m = re.search('(' + symbol + ')$|\((' + symbol + ')\|[2-9]+?\)$', g[nonterminal])
 				if m:
-					left_pop(a, nonterminal)
+					left_pop(g, nonterminal)
 				else:
 					break
 		elif m.group(2):
@@ -269,24 +285,24 @@ def remove_suffix(a, index):
 			else:
 				break
 
-		s = next_symbol(a, index, block)
+		s = next_symbol(g, index, block)
 
 	if len_block >= 2:
-		a[index] = lreplace(block, '(' + symbol + '|' + str(len_block) + ')', a[index])
+		g[index] = lreplace(block, '(' + symbol + '|' + str(len_block) + ')', g[index])
 
 
-def preprocessing(a, n, nm):
-	for i in range(len(a)):
-		if i == n or i == nm:
+def preprocessing(g, m, mn):
+	for i in range(len(g)):
+		if i == m or i == mn:
 			continue
 
-		left_pop(a, i)
-		right_pop(a, i)
+		left_pop(g, i)
+		right_pop(g, i)
 
-		if a[i] == '':
-			remove_nonterminal(a, i)
+		if g[i] == '':
+			remove_nonterminal(g, i)
 
-def pair_comp(a, nm, pair):
+def pair_comp(g, mn, pair):
 	global next_pair
 
 	m = re.search('^\(([0-9]+?)\)', pair)
@@ -301,45 +317,111 @@ def pair_comp(a, nm, pair):
 	else:
 		last_pair = pair[-1]
 
-	for j in range(nm + 1):
-		for i in range(nm + 1):
-			f = first(a, j)
+	for j in range(mn + 1):
+		for i in range(mn + 1):
+			f = first(g, j)
 			b = first_pair + '<' + str(j) + '>'
-			if b in a[i] and last_pair == f:
-				left_pop(a, j)
+			if b in g[i] and last_pair == f:
+				left_pop(g, j)
 
-			l = last(a, j)
+			l = last(g, j)
 			b = '<' + str(j) + '>' + last_pair
-			if b in a[i] and first_pair == l:
-				right_pop(a, j)
+			if b in g[i] and first_pair == l:
+				right_pop(g, j)
 
-		a[j] = string.replace(a[j], pair, '(' + str(next_pair) + ')')
+		g[j] = string.replace(g[j], pair, '(' + str(next_pair) + ')')
 
-	for i in range(nm):
-		if a[i] == '':
-			remove_nonterminal(a, i)
+	for i in range(mn):
+		if g[i] == '':
+			remove_nonterminal(g, i)
 
 	next_pair += 1
 
-def rem_cr_blocks(a, n, nm):
-	for i in range(len(a)):
-		if i == n or i == nm:
+def rem_cr_blocks(g, m, mn):
+	for i in range(len(g)):
+		if i == m or i == mn:
 			continue
 
-		remove_prefix(a, i)
-		remove_suffix(a, i)
-		left_pop(a, i)
-		right_pop(a, i)
+		remove_prefix(g, i)
+		remove_suffix(g, i)
+		left_pop(g, i)
+		right_pop(g, i)
 
-		if a[i] == '':
-			remove_nonterminal(a, i)
+		if g[i] == '':
+			remove_nonterminal(g, i)
+
+def non_pairs(g, m, mn):
+	pairs = []
+
+	for i in range(m, -1, -1):
+		a = next_symbol(g, i, '')
+		b = next_symbol(g, i, a)
+		prefix = a
+
+		while b != '':
+			if a != b and is_terminal(a) and is_terminal(b):
+				pairs.append(a + b)
+
+			a = next_symbol(g, i, prefix)
+			prefix += a
+			b = next_symbol(g, i, prefix)
+
+	return pairs
+
+def cross_pairs(g, m, mn):
+	pairs = []
+
+	for i in range(m, -1, -1):
+		a = next_symbol(g, i, '')
+		b = next_symbol(g, i, a)
+		prefix = a
+
+		while b != '':
+			if is_nonterminal(a):
+				l = last(g, int(a[1:-1]))
+				if l != b:
+					pairs.append(l + b)
+			elif is_nonterminal(b):
+				f = first(g, int(b[1:-1]))
+				if a != f:
+					pairs.append(a + f)
+
+			a = next_symbol(g, i, prefix)
+			prefix += a
+			b = next_symbol(g, i, prefix)
+
+	return pairs
+
+def compress_pair(g, mn, pair):
+	global next_pair
+
+	for i in range(mn):
+		g[i] = string.replace(g[i], pair, '(' + str(next_pair) + ')')
+
+	next_pair += 1
+		
+
+def fcpm(g, m, mn):
+	#|val(X_m)| > 1
+	preprocessing(g, m, mn)
+	s = re.search('((\([0-9]+?\))|(\(.\|[2-9]+?\))|(<[0-9]+?>)|(.))', g[m])
+	while s:
+		pairs = non_pairs(g, m, mn)
+		cpairs = cross_pairs(g, m, mn)
+
+		for i in range(len(pairs)):
+			compress_pair(g, mn, pairs[i])
+
+		for i in range(len(cpairs)):
+			pair_comp(g, mn, cpairs[i])
+		break
 
 
-def print_rules(a):
+def print_rules(g):
 	print '########################################'
 
-	for i in range(len(a)):
-		print i, ':', a[i]
+	for i in range(len(g)):
+		print i, ':', g[i]
 
 	print '########################################'
 
@@ -347,67 +429,68 @@ def print_rules(a):
 
 
 def gram1():
-	a = []
-	a.append('abb')
-	a.append('<0>')
-	a.append('<1><1>')
-	a.append('fg')
-	a.append('bbab')
-	a.append('<3>a<4>b')
-	a.append('<5>a<4>')
-	a.append('w<3><6>c')
-	a.append('<5>b<7>')
+	g = []
+	g.append('gbb')
+	g.append('<0>')
+	g.append('<1><1>')
+	g.append('fg')
+	g.append('bbab')
+	g.append('<3>a<4>b')
+	g.append('<5>a<4>')
+	g.append('w<3><6>c')
+	g.append('<5>b<7>')
 
 	print '########################################'
-	print val(a, 2)
-	print val(a, 8)
-	print_rules(a)
+	print val(g, 2)
+	print val(g, 8)
+	print_rules(g)
 
-	preprocessing(a, 2, 8)
-	print_rules(a)
+	preprocessing(g, 2, 8)
+	print_rules(g)
 
-	pair_comp(a, 8, 'ab')
-	print_rules(a)
+	pair_comp(g, 8, 'ab')
+	print_rules(g)
 
-	pair_comp(a, 8, '(0)b')
-	print_rules(a)
+	pair_comp(g, 8, '(0)b')
+	print_rules(g)
 
-	pair_comp(a, 8, '(1)(1)')
-	print_rules(a)
+	pair_comp(g, 8, '(1)(1)')
+	print_rules(g)
 
-	print val(a, 2)
-	print val(a, 8)
+	print val(g, 2)
+	print val(g, 8)
 	print '########################################'
 
 
 def gram2():
-	a = []
-	a.append('aa')
-	a.append('<0>acca<0>')
-	a.append('bb')
-	a.append('<2>b<2>')
-	a.append('<1><3>')
-	a.append('bbbb')
-	a.append('aaccaaa')
-	a.append('<5>a<6>')
-	a.append('<5>b<7>')
-	a.append('<8>a<6>')
-	a.append('<9>bbb<8>')
+	g = []
+	g.append('aa')
+	g.append('<0>acca<0>')
+	g.append('bb')
+	g.append('<2>b<2>')
+	g.append('<1><3>')
+	g.append('bbbb')
+	g.append('aaccaaa')
+	g.append('<5>a<6>')
+	g.append('<5>b<7>')
+	g.append('<8>a<6>')
+	g.append('<9>bbb<8>')
 
 	#print '########################################'
-	#print val(a, 4)
-	#print val(a, 10)
-	#print_rules(a)
+	#print val(g, 4)
+	#print val(g, 10)
+	#print_rules(g)
 
-	preprocessing(a, 4, 10)
-	#print_rules(a)
+	#preprocessing(g, 4, 10)
+	#print_rules(g)
 
-	rem_cr_blocks(a, 4, 10)
-	print_rules(a)
+	#rem_cr_blocks(g, 4, 10)
+	fcpm(g, 4, 10)
+	print_rules(g)
 
 	print '########################################'
-	#print val(a, 4)
-	#print val(a, 10)
+	#print val(g, 4)
+	#print val(g, 10)
 	#print '########################################'
 
 
