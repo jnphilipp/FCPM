@@ -39,6 +39,20 @@ import string
 next_pair=0
 
 
+def lreplace(pattern, sub, string):
+    """
+    Replaces 'pattern' in 'string' with 'sub' if 'pattern' starts 'string'.
+    """
+    return re.sub('^%s' % pattern, sub, string)
+
+def rreplace(pattern, sub, string):
+    """
+    Replaces 'pattern' in 'string' with 'sub' if 'pattern' ends 'string'.
+    """
+    return re.sub('%s$' % pattern, sub, string)
+
+
+
 def first(a, index):
 	if a[index] == '':
 		return ''
@@ -48,7 +62,7 @@ def first(a, index):
 			return first(a, int(m.group(1)))
 		else:
 			#m = re.search('^\(([0-9]+?)\)', a[index])
-			m = re.search('^\((([0-9]+?)|(.\|[2-9]+?))\)', a[index])
+			m = re.search('^(\([0-9]+?\))|^(\(.\|[2-9]+?\))', a[index])
 			if m:
 				return m.group(0)
 			else:
@@ -80,7 +94,8 @@ def left_pop(a, index):
 		left_pop(a, int(m.group(1)))
 
 	#m = re.search('^\(([0-9]+?)\)', a[index])
-	m = re.search('^\((([0-9]+?)|(.\|[2-9]+?))\)', a[index])
+	#^(\([0-9]+?\))|^(\(.\|[2-9]+?\))
+	m = re.search('^(\([0-9]+?\))|^(\(.\|[2-9]+?\))', a[index])
 	if m:
 		a[index] = a[index][len(m.group(0)):]
 	else:
@@ -121,6 +136,16 @@ def val(a, index):
 
 		return val_index
 
+def next_symbol(a, nonterminal, prefix):
+	if a[nonterminal] == '':
+		return ''
+
+	m = re.search('^' + prefix + '((\([0-9]+?\))|(\(.\|[2-9]+?\))|(<[0-9]+?>)|(.))', a[nonterminal])
+	if m:
+		return m.group(1)
+	else:
+		return ''
+
 def remove_nonterminal(a, nonterminal):
 	for i in range(len(a)):
 		a[i] = string.replace(a[i], '<' + str(nonterminal) + '>', '')
@@ -129,29 +154,80 @@ def remove_prefix(a, index):
 	if a[index] == '':
 		return
 
+	s = next_symbol(a, index, '')
+	block = ''
+	symbol = ''
+	len_block = 0
+	while s != '':
+		#print s
+		m = re.search('(<[0-9]+?>)|(.)', s)
+		if m.group(2):
+			if block == '':
+				block = s
+				symbol = s
+				len_block += 1
+			elif s == symbol:
+				block += s
+				len_block += 1
+			else:
+				break
+		elif m.group(1):
+			nonterminal = int(m.group(1)[1:-1])
+			m = re.search('^(.)$|^\((.)\|[2-9]+?\)$', a[nonterminal])
+			if m:
+				symbol = m.group(1) if m.group(1) else m.group(2)
+				m = re.search('^<' + str(nonterminal) + '>' + symbol, a[index])
+				if m:
+					left_pop(a, nonterminal)
+					remove_nonterminal(a, nonterminal)
+				else:
+					break
+			else:
+				break
+			#print m.group(1)
+
+		s = next_symbol(a, index, block)
+
+	if len_block >= 2:
+		a[index] = lreplace(block, '(' + symbol + '|' + str(len_block) + ')', a[index])
+
 	#m = re.search('^' + a[index][0] + '+', a[index])
-	m = re.search('^<([0-9]+?)>', a[index])
-	if m:
-		print 'f'
-		#left_pop(a, int(m.group(1)))
-	else:
-		m = re.search('^(' + a[index][0] + '+)<([0-9]+?)>', a[index])
-		if m:
-			f = first(a, m.group(2))
-			fm = re.search('\((.)\|([2-9]+?)\)', f)
+	#m = re.search('^<([0-9]+?)>', a[index])
+	#if m:
+	#	nonterminal = int(m.group(1))
+	#	m = re.search('^(.)$|^\((.)\|[2-9]+?\)$', a[nonterminal])
+	#	if m:
+	#		symbol = m.group(1) if m.group(1) else m.group(2)
+	#		m = re.search('^<' + str(nonterminal) + '>' + symbol, a[index])
+	#		if m:
+	#			left_pop(a, nonterminal)
+	#			remove_nonterminal(a, nonterminal)
 
-			if fm:
-				if fm.group(1) == a[index][0]:
-					left_pop(a, m.group(2))
-			elif a[index][0] == f:
-				left_pop(a, m.group(2))
+	#f = first(a, index)
+	#if len(f) == 1:
+	#	m = re.search('^(' + f + '+)(<[0-9]+?>)', a[index])
+		#if m:
+	#else:
+	#	m = re.search('\((.)\|[2-9]+\)', f)
+	#	if m:
+	#		m = re.search('^\(' + m.group(1) + '\|[2-9]+\)(' + m.group(1) + '+)<([0-9]+?)>', a[index])
 
-		m = re.search('^(' + a[index][0] + '+)|((' + a[index][0] + '+)\(' + a[index] + '\|([2-9]+?)\))', a[index])
-		if m:
-			if m.group(1) and len(m.group(1)) >= 2:
-				a[index] = string.replace(a[index], m.group(1), '(' + a[index][0] + '|' + str(len(m.group(1))) + ')')
-			elif m.group(2):
-				a[index] = string.replace(a[index], m.group(2), '(' + a[index][0] + '|' + str(len(m.group(3)) + int(m.group(4))) + ')')
+	#if m:
+	#	f = first(a, int(m.group(2)))
+	#	fm = re.search('\((.)\|([2-9]+?)\)', f)
+
+	#	if fm:
+	#		if fm.group(1) == f:
+	#			left_pop(a, m.group(2))
+	#	elif a[index][0] == f:
+	#		left_pop(a, m.group(2))
+
+	#m = re.search('^(' + f + '+)|((' + f + '+)\(' + a[index] + '\|([2-9]+?)\))', a[index])
+	#if m:
+	#	if m.group(1) and len(m.group(1)) >= 2:
+	#		a[index] = string.replace(a[index], m.group(1), '(' + f + '|' + str(len(m.group(1))) + ')')
+	#	elif m.group(2):
+	#		a[index] = string.replace(a[index], m.group(2), '(' + f + '|' + str(len(m.group(3)) + int(m.group(4))) + ')')
 
 
 def preprocessing(a, n, nm):
