@@ -36,13 +36,11 @@ def main(argv):
 		print 'fcpm.py -v <verbose> -g <grammer file>'
 		sys.exit(2)
 
-
 def lreplace(pattern, sub, string):
 	return re.sub('^%s' % re.escape(pattern), sub, string)
 
 def rreplace(pattern, sub, string):
 	return re.sub('%s$' % re.escape(pattern), sub, string)
-
 
 def is_terminal(symbol):
 	m = re.search('<([0-9]+?)>', symbol)
@@ -71,7 +69,6 @@ def expand(block):
 			s += m.group(1)
 
 	return s
-
 
 def first(g, index):
 	if g[index] == '':
@@ -130,7 +127,6 @@ def right_pop(g, mn, index):
 	if m:
 		right_pop(g, mn, int(m.group(1)))
 
-	#m = re.search('\(([0-9]+?)\)$', g[index])
 	m = re.search('\((([0-9]+?)|(.\|[2-9]+?))\)$', g[index])
 	if m:
 		g[index] = g[index][:-len(m.group(0))]
@@ -454,7 +450,6 @@ def compress_block(g, mn, letter, max_length=-1):
 
 	block = list(block)
 	block.sort(reverse=True, key=operator.itemgetter(0))
-	#print block
 	for j in xrange(len(block)):
 		for i in xrange(mn + 1):
 			g[i] = string.replace(g[i], block[j][1], '(' + letter + '|' + str(len(block[j][0])) + ')')
@@ -493,9 +488,17 @@ def fix_ending(g, m, mn, ending):
 		compress_pair(g, mn, s + ending)
 
 def fcpm(g, m, mn):
+	global verbose
+	global next_pair
+
+	if verbose:
+		print_rules(g)
+
 	preprocessing(g, m, mn)
-	print_rules(g)
 	letters = all_letters(g, m)
+
+	if verbose:
+		print_rules(g)
 
 	s = re.search('^((\([0-9]+?\))|(\(.\|[2-9]+?\))|(.))$', g[m])
 	while not s:
@@ -505,7 +508,11 @@ def fcpm(g, m, mn):
 		f = first(g, m)
 		l = last(g, m)
 		if f == l:
-			print 'fix equal'
+			lreplace(f, '(' + str(next_pair) + ')', g[m])
+			next_pair += 1
+
+			fix_beginning(g, m, mn, f)
+			fix_ending(g, m, mn, l)
 		else:
 			fix_beginning(g, m, mn, f)
 			fix_ending(g, m, mn, l)
@@ -520,10 +527,11 @@ def fcpm(g, m, mn):
 		for i in xrange(len(letters)):
 			compress_block(g, mn, letters[i])
 
-		print_rules(g)
+		if verbose:
+			print_rules(g)
+
 		s = re.search('^((\([0-9]+?\))|(\(.\|[2-9]+?\))|(.))$', g[m])
 
-	print '########################################'
 	s = re.search(re.escape(g[m]), val(g, mn))
 	if s:
 		print 'Pattern found.'
