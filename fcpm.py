@@ -1,42 +1,40 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#import getopt
-#import os
-#import sys
-#import time
-#import subprocess
+import getopt
 import operator
 import re
 import string
-
-#def main(argv):
-#	global pgdump
-
-#	try:
-#		opts, args = getopt.getopt(argv,"hd:m:p",["dir=", "method=", "pg_dump="])
-#	except getopt.GetoptError:
-#		print 'backup.py -d <backup dir> -m <backup method>'
-#		sys.exit(2)
-	
-#	for opt, arg in opts:
-#		if opt == '-h':
-#			print 'backup.py -d <backup dir> -m <backup method>'
-#			sys.exit()
-#		elif opt in ("-d", "--dir"):
-#			bdir = arg
-#		elif opt in ("-m", "--method"):
-#			method = arg
-#		elif opt in ("-p", "--pg_dump"):
-#			pgdump='dump'
-
-#	if bdir == '' and pgdump == '':
-#		print 'backup.py -d <backup dir>'
-#		sys.exit(1)
-
+import sys
 
 
 next_pair=0
+grammer=''
+verbose=False
+
+
+def main(argv):
+	global grammer
+	global verbose
+
+	try:
+		opts, args = getopt.getopt(argv, 'hvg:', ['help', 'verbose', 'grammer='])
+	except getopt.GetoptError:
+		print 'fcpm.py -v <verbose> -g <grammer file>'
+		sys.exit(2)
+	
+	for opt, arg in opts:
+		if opt in ("-h", "--help"):
+			print 'fcpm.py -v <verbose> <grammer file>'
+			sys.exit()
+		elif opt in ("-v", "--verbose"):
+			verbose = True
+		elif opt in ("-g", "--grammer"):
+			grammer = arg
+
+	if grammer == '':
+		print 'fcpm.py -v <verbose> -g <grammer file>'
+		sys.exit(2)
 
 
 def lreplace(pattern, sub, string):
@@ -406,7 +404,7 @@ def compress_pair(g, mn, pair):
 
 	next_pair += 1
 
-def compress_block(g, mn, letter):
+def compress_block(g, mn, letter, max_length=-1):
 	block = set()
 
 	for i in xrange(mn + 1):
@@ -419,12 +417,22 @@ def compress_block(g, mn, letter):
 			if is_terminal(a):
 				m = re.search('\(' + letter + '\|[2-9]+?\)', a)
 				if m:
-					tmp_block += a
-					tmp_block_comp += expand(a)
+					if max_length == -1:
+						tmp_block += a
+						tmp_block_comp += expand(a)
+					else:
+						if len(tmp_block_comp) < max_length:
+							tmp_block += a
+							tmp_block_comp += expand(a)
 				elif len(a) == 1:
 					if a == letter:
-						tmp_block += a
-						tmp_block_comp += a
+						if max_length == -1:
+							tmp_block += a
+							tmp_block_comp += a
+						else:
+							if len(tmp_block_comp) < max_length:
+								tmp_block += a
+								tmp_block_comp += a
 				else:
 					if len(tmp_block_comp) >= 2:
 						block.add((tmp_block_comp, tmp_block))
@@ -439,8 +447,14 @@ def compress_block(g, mn, letter):
 			prefix += a
 			a = next_symbol(g, i, prefix)
 
+		if len(tmp_block_comp) >= 2:
+			block.add((tmp_block_comp, tmp_block))
+			tmp_block = ''
+			tmp_block_comp = ''
+
 	block = list(block)
 	block.sort(reverse=True, key=operator.itemgetter(0))
+	#print block
 	for j in xrange(len(block)):
 		for i in xrange(mn + 1):
 			g[i] = string.replace(g[i], block[j][1], '(' + letter + '|' + str(len(block[j][0])) + ')')
@@ -461,7 +475,7 @@ def fix_beginning(g, m, mn, beginning):
 		left_pop(g, mn, nonterminal)
 
 	if beginning == s:
-		compress_block(g, mn, beginning)
+		compress_block(g, mn, beginning, 2)
 	else:
 		compress_pair(g, mn, beginning + s)
 
@@ -474,7 +488,7 @@ def fix_ending(g, m, mn, ending):
 
 
 	if ending == s:
-		compress_block(g, mn, ending)
+		compress_block(g, mn, ending, 2)
 	else:
 		compress_pair(g, mn, s + ending)
 
@@ -509,6 +523,13 @@ def fcpm(g, m, mn):
 		print_rules(g)
 		s = re.search('^((\([0-9]+?\))|(\(.\|[2-9]+?\))|(.))$', g[m])
 
+	print '########################################'
+	s = re.search(re.escape(g[m]), val(g, mn))
+	if s:
+		print 'Pattern found.'
+	else:
+		print 'Pattern not found.'
+
 
 def print_rules(g):
 	print '########################################'
@@ -518,97 +539,28 @@ def print_rules(g):
 
 	print '########################################'
 
+def load_grammer():
+	global grammer
 
-
-
-def gram1():
+	first = False
 	g = []
-	g.append('gbb')
-	g.append('<0>')
-	g.append('<1><1>')
-	g.append('fg')
-	g.append('bbab')
-	g.append('<3>a<4>b')
-	g.append('<5>a<4>')
-	g.append('w<3><6>c')
-	g.append('<5>b<7>')
+	m = 0
+	mn = 0
 
-	print '########################################'
-	print val(g, 2)
-	print val(g, 8)
-	#print_rules(g)
+	f = open(grammer, 'r')
+	for line in f:
+		if not first:
+			s = line.split(';')
+			m = int(s[0])
+			mn = int(s[1])
+			first = True
+		else:
+			g.append(string.replace(line, '\n', ''))
 
-	#preprocessing(g, 2, 8)
-	#print_rules(g)
+	return (g, m, mn)
 
-	#pair_comp(g, 8, 'ab')
-	#print_rules(g)
-
-	#pair_comp(g, 8, '(0)b')
-	#print_rules(g)
-
-	#pair_comp(g, 8, '(1)(1)')
-	#print_rules(g)
-
-	fcpm(g, 2, 8)
-	print_rules(g)
-
-	#print val(g, 2)
-	#print val(g, 8)
-	print '########################################'
-
-
-def gram2():
-	g = []
-	g.append('aa')
-	g.append('<0>acca<0>')
-	g.append('bb')
-	g.append('<2>b<2>')
-	g.append('<1><3>')
-	g.append('bbbb')
-	g.append('aaccaaa')
-	g.append('<5>a<6>')
-	g.append('<5>b<7>')
-	g.append('<8>a<6>')
-	g.append('<9>bbb<8>')
-
-	#print '########################################'
-	print val(g, 4)
-	print val(g, 10)
-	#print_rules(g)
-
-	#preprocessing(g, 4, 10)
-	#print_rules(g)
-
-	#rem_cr_blocks(g, 4, 10)
-	fcpm(g, 4, 10)
-	print_rules(g)
-
-	print '########################################'
-	#print val(g, 4)
-	#print val(g, 10)
-	#print '########################################'
-
-
-def gram3():
-	g = []
-	g.append('ab')
-	g.append('babab')
-
-	#print '########################################'
-	print val(g, 0)
-	print val(g, 1)
-	#print_rules(g)
-
-	#preprocessing(g, 4, 10)
-	#print_rules(g)
-
-	#rem_cr_blocks(g, 4, 10)
-	fcpm(g, 0, 1)
-
-	print '########################################'
 
 if __name__ == "__main__":
-	#main(sys.argv[1:])
-	#gram1()
-	gram3()
+	main(sys.argv[1:])
+	g, m, mn = load_grammer()
+	fcpm(g, m, mn)
