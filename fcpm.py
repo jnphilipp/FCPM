@@ -108,18 +108,18 @@ def transform_repair():
 		current_index = int(s[0])
 		offset = 0
 		while len(re.findall((nonterminal_symbol + '[0-9]+?' + nonterminal_symbol).encode('string-escape'), s[1])) > 2:
-			m = re.search((nonterminal_symbol + '[0-9]+?' + nonterminal_symbol + nonterminal_symbol + '[0-9]+?' + nonterminal_symbol).encode('string-escape'), s[1])
-			while m:
-				write.write(str(current_index + offset) + ' -> ' + m.group(0) + '\n')
-				s[1] = re.sub(re.escape(m.group(0)), (nonterminal_symbol + str(current_index + offset) + nonterminal_symbol).encode('string-escape'), s[1])
+			match = re.search((nonterminal_symbol + '[0-9]+?' + nonterminal_symbol + nonterminal_symbol + '[0-9]+?' + nonterminal_symbol).encode('string-escape'), s[1])
+			while match:
+				write.write(str(current_index + offset) + ' -> ' + match.group(0) + '\n')
+				s[1] = re.sub(re.escape(match.group(0)), (nonterminal_symbol + str(current_index + offset) + nonterminal_symbol).encode('string-escape'), s[1])
 
 				offset += 1
-				m = re.search((nonterminal_symbol + '[0-9]+?' + nonterminal_symbol + nonterminal_symbol + '[0-9]+?' + nonterminal_symbol).encode('string-escape'), s[1])
+				match = re.search((nonterminal_symbol + '[0-9]+?' + nonterminal_symbol + nonterminal_symbol + '[0-9]+?' + nonterminal_symbol).encode('string-escape'), s[1])
 
-			m = re.search(('(^.*?' + nonterminal_symbol + '[0-9]+?' + nonterminal_symbol + '.+?' + nonterminal_symbol + '[0-9]+?' + nonterminal_symbol + '.*?)(' + nonterminal_symbol + '[0-9]+?' + nonterminal_symbol+ ')').encode('string-escape'), s[1])
-			if m:
-				write.write(str(current_index + offset) + ' -> ' + m.group(1) + '\n')
-				s[1] = re.sub(re.escape(m.group(1)), (nonterminal_symbol + str(current_index + offset) + nonterminal_symbol).encode('string-escape'), s[1])
+			match = re.search(('(^.*?' + nonterminal_symbol + '[0-9]+?' + nonterminal_symbol + '.+?' + nonterminal_symbol + '[0-9]+?' + nonterminal_symbol + '.*?)(' + nonterminal_symbol + '[0-9]+?' + nonterminal_symbol+ ')').encode('string-escape'), s[1])
+			if match:
+				write.write(str(current_index + offset) + ' -> ' + match.group(1) + '\n')
+				s[1] = re.sub(re.escape(match.group(1)), (nonterminal_symbol + str(current_index + offset) + nonterminal_symbol).encode('string-escape'), s[1])
 				offset += 1
 
 		write.write(str(current_index + offset) + ' -> ' + s[1] + '\n')
@@ -170,21 +170,13 @@ def load_repair_grammer():
 	for line in f:
 		s = re.sub('\n', '', line).split(' -> ')
 		if last_index + 1 == int(s[0]):
-			if len(re.findall((nonterminal_symbol + '[0-9]+?' + nonterminal_symbol).encode('string-escape'), line)) > 2:
-				print 'Grammer has the wrong format. Only two nonterminals are permitted on each right side.'
-				sys.exit(1)
-			else:
-				g.append(s[1])
+			g.append(s[1])
 			last_index = int(s[0])
 		else:
 			for i in xrange(last_index + 1, int(s[0])):
 				g.append('')
+			g.append(s[1])
 			last_index = int(s[0])
-			if len(re.findall((nonterminal_symbol + '[0-9]+?' + nonterminal_symbol).encode('string-escape'), line)) > 2:
-				print 'Grammer has the wrong format. Only two nonterminals are permitted on each right side.'
-				sys.exit(1)
-			else:
-				g.append(s[1])
 	f.close()
 
 	m = last_index
@@ -193,24 +185,14 @@ def load_repair_grammer():
 	for line in f:
 		s = re.sub('\n', '', line).split(' -> ')
 		if last_index + 1 == int(s[0]) + m + 1:
-			if len(re.findall((nonterminal_symbol + '[0-9]+?' + nonterminal_symbol).encode('string-escape'), line)) > 2:
-				print 'Grammer has the wrong format. Only two nonterminals are permitted on each right side.'
-				sys.exit(1)
-			else:
-				g.append(modify_repair_nonterminals(s[1], m + 1))
+			g.append(modify_repair_nonterminals(s[1], m + 1))
 			last_index = int(s[0]) + m + 1
 		else:
 			for i in xrange(last_index + 1, int(s[0]) + m + 1):
 				g.append('')
-
-			if len(re.findall((nonterminal_symbol + '[0-9]+?' + nonterminal_symbol).encode('string-escape'), line)) > 2:
-				print 'Grammer has the wrong format. Only two nonterminals are permitted on each right side.'
-				sys.exit(1)
-			else:
-				g.append(modify_repair_nonterminals(s[1], m + 1))
+			g.append(modify_repair_nonterminals(s[1], m + 1))
 			last_index = int(s[0]) + m + 1
 	f.close()
-
 	mn = last_index
 
 	return (g, m, mn)
@@ -237,8 +219,8 @@ def is_terminal(symbol):
 	if symbol == '':
 		return False
 
-	m = re.search((nonterminal_symbol + '([0-9]+?)' + nonterminal_symbol).encode('string-escape'), symbol)
-	if m:
+	match = re.search((nonterminal_symbol + '([0-9]+?)' + nonterminal_symbol).encode('string-escape'), symbol)
+	if match:
 		return False
 	else:
 		return True
@@ -247,8 +229,8 @@ def is_nonterminal(symbol):
 	if symbol == '':
 		return False
 
-	m = re.search((nonterminal_symbol + '([0-9]+?)' + nonterminal_symbol).encode('string-escape'), symbol)
-	if m:
+	match = re.search((nonterminal_symbol + '([0-9]+?)' + nonterminal_symbol).encode('string-escape'), symbol)
+	if match:
 		return True
 	else:
 		return False
@@ -283,9 +265,9 @@ def next_symbol(g, nonterminal, prefix):
 	if g[nonterminal] == '':
 		return ''
 
-	m = re.search(('^' + prefix + '((' + recompress_symbol + '[0-9]+?' + recompress_symbol + ')|(' + nonterminal_symbol + '[0-9]+?' + nonterminal_symbol + ')|(.))').encode('string-escape'), g[nonterminal])
-	if m:
-		return m.group(1)
+	match = re.search(('^' + prefix + '((' + recompress_symbol + '[0-9]+?' + recompress_symbol + ')|(' + nonterminal_symbol + '[0-9]+?' + nonterminal_symbol + ')|(.))').encode('string-escape'), g[nonterminal])
+	if match:
+		return match.group(1)
 	else:
 		return ''
 
@@ -293,9 +275,9 @@ def prev_symbol(g, nonterminal, suffix):
 	if g[nonterminal] == '':
 		return ''
 
-	m = re.search(('((' + recompress_symbol + '[0-9]+?' + recompress_symbol + ')|(' + nonterminal_symbol + '[0-9]+?' + nonterminal_symbol + ')|(.))' + suffix + '$').encode('string-escape'), g[nonterminal])
-	if m:
-		return m.group(1)
+	match = re.search(('((' + recompress_symbol + '[0-9]+?' + recompress_symbol + ')|(' + nonterminal_symbol + '[0-9]+?' + nonterminal_symbol + ')|(.))' + suffix + '$').encode('string-escape'), g[nonterminal])
+	if match:
+		return match.group(1)
 	else:
 		return ''
 
@@ -303,32 +285,19 @@ def all_letters(g, m):
 	letters = set()
 
 	for i in xrange(m + 1):
+		if g[i] == '':
+			continue
 		letters.update(set(re.sub((nonterminal_symbol + '[0-9]+?' + nonterminal_symbol).encode('string-escape'), '', g[i])))
 
 	return list(letters)
 
-def non_pairs(g, m, mn):
-	pairs = []
+def get_pairs(g, m):
+	pairs = set()
 
 	for i in xrange(m, -1, -1):
-		a = next_symbol(g, i, '')
-		b = next_symbol(g, i, a)
-		prefix = a
+		if g[i] == '':
+			continue
 
-		while b != '':
-			if a != b and is_terminal(a) and is_terminal(b):
-				pairs.append(a + b)
-
-			a = next_symbol(g, i, prefix)
-			prefix += a
-			b = next_symbol(g, i, prefix)
-
-	return pairs
-
-def cross_pairs(g, m, mn):
-	pairs = []
-
-	for i in xrange(m, -1, -1):
 		a = next_symbol(g, i, '')
 		b = next_symbol(g, i, a)
 		prefix = a
@@ -337,17 +306,17 @@ def cross_pairs(g, m, mn):
 			if is_nonterminal(a):
 				l = last(g, int(a[1:-1]))
 				if l != b:
-					pairs.append(l + b)
+					pairs.add((l + b, l, b))
 			elif is_nonterminal(b):
 				f = first(g, int(b[1:-1]))
 				if a != f:
-					pairs.append(a + f)
+					pairs.add((a + f, a, f))
 
 			a = next_symbol(g, i, prefix)
 			prefix += a
 			b = next_symbol(g, i, prefix)
 
-	return pairs
+	return list(pairs)
 
 
 ##################################################
@@ -378,9 +347,7 @@ def fcpm(g, m, mn):
 		sys.stdout.write(".")
 		sys.stdout.flush()
 		
-		pairs = non_pairs(g, m, mn)
-		cpairs = cross_pairs(g, m, mn)
-
+		pairs = get_pairs(g, m)
 		rem_cr_blocks(g, m, mn)
 		fix_beginning(g, m, mn, first(g, m))
 		fix_ending(g, m, mn, last(g, m))
@@ -389,11 +356,7 @@ def fcpm(g, m, mn):
 			print '\nAfter fixing begin and end:'
 			print_rules(g)
 
-		for i in xrange(len(pairs)):
-			pair_comp(g, mn, pairs[i])
-
-		for i in xrange(len(cpairs)):
-			pair_comp(g, mn, cpairs[i])
+		pairs_comp(g, mn, pairs)
 
 		for i in xrange(len(letters)):
 			compress_block(g, m, mn, letters[i])
@@ -422,14 +385,14 @@ def fcpm(g, m, mn):
 
 def preprocessing(g, m, mn):
 	for i in xrange(mn + 1):
-		if i == m or i == mn:
+		if i == m or i == mn or g[i] == '':
 			continue
 
-		left_pop(g, mn, i)
-		right_pop(g, mn, i)
+		left_pop(g, m, mn, i)
+		right_pop(g, m, mn, i)
 
 		if g[i] == '':
-			remove_nonterminal(g, mn, i)
+			remove_nonterminal(g, m, mn, i)
 
 def fix_beginning(g, m, mn, beginning):
 	global next
@@ -438,7 +401,7 @@ def fix_beginning(g, m, mn, beginning):
 	if is_nonterminal(s):
 		nonterminal = int(s[1:-1])
 		s = first(g, nonterminal)
-		left_pop(g, mn, nonterminal)
+		left_pop(g, m, mn, nonterminal)
 
 	if beginning == s:
 		compress_block(g, m, mn, beginning)
@@ -452,7 +415,7 @@ def fix_ending(g, m, mn, ending):
 
 	if is_nonterminal(s):
 		nonterminal = int(s[1:-1])
-		s = last(g, nonterminal)
+		s = last(g, m, nonterminal)
 		right_pop(g, mn, nonterminal)
 
 
@@ -464,69 +427,101 @@ def fix_ending(g, m, mn, ending):
 def pair_comp(g, mn, pair):
 	global next
 
-	m = re.search(('^' + recompress_symbol + '([0-9]+?)' + recompress_symbol).encode('string-escape'), pair)
-	if m:
-		first_pair = m.group(0)
+	match = re.search(('^' + recompress_symbol + '([0-9]+?)' + recompress_symbol).encode('string-escape'), pair)
+	if match:
+		first_pair = match.group(0)
 	else:
 		first_pair = pair[0]
-
-	m = re.search((recompress_symbol + '([0-9]+?)' + recompress_symbol + '$').encode('string-escape'), pair)
-	if m:
-		last_pair = m.group(0)
-	else:
-		last_pair = pair[-1]
+	last_pair = pair[len(first_pair):]
 
 	if first_pair == last_pair:
 		return
 
 	for j in xrange(mn + 1):
-		for i in xrange(mn + 1):
-			f = first(g, j)
-			b = first_pair + nonterminal_symbol + str(j) + nonterminal_symbol
-			if b in g[i] and last_pair == f:
-				left_pop(g, mn, j)
+		if g[j] == '':
+			continue
 
-			l = last(g, j)
-			b = nonterminal_symbol + str(j) + nonterminal_symbol + last_pair
-			if b in g[i] and first_pair == l:
-				right_pop(g, mn, j)
+		f = first(g, j)
+		begin = first_pair + nonterminal_symbol + str(j) + nonterminal_symbol
+		l = last(g, j)
+		end = nonterminal_symbol + str(j) + nonterminal_symbol + last_pair
+
+		for i in xrange(mn + 1):
+			if begin in g[i] and last_pair == f:
+				left_pop(g, m, mn, j)
+
+			if end in g[i] and first_pair == l:
+				right_pop(g, m, mn, j)
 
 		g[j] = re.sub(pair.encode('string-escape'), (recompress_symbol + str(next) + recompress_symbol), g[j])
 
 	for i in xrange(mn + 1):
 		if g[i] == '':
-			remove_nonterminal(g, mn, i)
+			remove_nonterminal(g, m, mn, i)
 
 	next += 1
 
+def pairs_comp(g, mn, pairs):
+	global next
+
+	for j in xrange(mn + 1):
+		if g[j] == '':
+			continue
+
+		left = re.search(('(' + recompress_symbol + '[0-9]+?' + recompress_symbol + '|.)' + nonterminal_symbol + '([0-9]+?)' + nonterminal_symbol).encode('string-escape'), g[j])
+		right = re.search((nonterminal_symbol + '([0-9]+?)' + nonterminal_symbol + '(.|' + recompress_symbol + '[0-9]+?' + recompress_symbol + ')').encode('string-escape'), g[j])
+
+		for i in xrange(len(pairs)):
+			if left:
+				if left.group(1) == pairs[i][1]:
+					if first(g, int(left.group(2))) == pairs[i][2]:
+						left_pop(g, m, mn, int(left.group(2)))
+
+			if right:
+				if right.group(2) == pairs[i][2]:
+					if last(g, int(right.group(1))) == pairs[i][1]:
+						right_pop(g, m, mn, int(right.group(1)))
+
+			if pairs[i][0] in g[j]:
+				if len(pairs[i]) == 3:
+					g[j] = re.sub(pairs[i][0].encode('string-escape'), (recompress_symbol + str(next) + recompress_symbol), g[j])
+					pairs[i] = pairs[i] + (next,)
+					next += 1
+				else:
+					g[j] = re.sub(pairs[i][0].encode('string-escape'), (recompress_symbol + str(pairs[i][3]) + recompress_symbol), g[j])
+
+	for i in xrange(mn + 1):
+		if g[i] == '':
+			remove_nonterminal(g, m, mn, i)
+
 def rem_cr_blocks(g, m, mn):
 	for i in xrange(mn + 1):
-		if i == m or i == mn:
+		if i == m or i == mn or g[i] == '':
 			continue
 
 		remove_prefix(g, mn, i)
 		remove_suffix(g, mn, i)
 
 		if g[i] == '':
-			remove_nonterminal(g, mn, i)
+			remove_nonterminal(g, m, mn, i)
 
 def remove_prefix(g, mn, index):
 	if g[index] == '':
 		return
 
 	symbol = first(g, index)
-	left_pop(g, mn, index)
+	left_pop(g, m, mn, index)
 	while first(g, index) == symbol:
-		left_pop(g, mn, index)
+		left_pop(g, m, mn, index)
 
 def remove_suffix(g, mn, index):
 	if g[index] == '':
 		return
 
 	symbol = last(g, index)
-	right_pop(g, mn, index)
+	right_pop(g, m, mn, index)
 	while last(g, index) == symbol:
-		right_pop(g, mn, index)
+		right_pop(g, m, mn, index)
 
 def compress_block(g, m, mn, letter):
 	if letter == '':
@@ -536,6 +531,9 @@ def compress_block(g, m, mn, letter):
 	blocks = set()
 
 	for i in xrange(m + 1):
+		if g[i] == '':
+			continue
+
 		block = re.findall((letter + '+').encode('string-escape'), g[i])
 		for b in block:
 			if len(b) > 1:
@@ -545,6 +543,9 @@ def compress_block(g, m, mn, letter):
 	blocks.sort(reverse=True)
 	for j in xrange(len(blocks)):
 		for i in xrange(mn + 1):
+			if g[i] == '':
+				continue
+
 			block = re.findall((letter + '+').encode('string-escape'), g[i])
 			for b in block:
 				if len(b) > len(blocks[j]):
@@ -563,13 +564,13 @@ def first(g, index):
 	if g[index] == '':
 		return ''
 	else:
-		m = re.search(('^' + nonterminal_symbol + '([0-9]+?)' + nonterminal_symbol).encode('string-escape'), g[index])
-		if m:
-			return first(g, int(m.group(1)))
+		match = re.search(('^' + nonterminal_symbol + '([0-9]+?)' + nonterminal_symbol).encode('string-escape'), g[index])
+		if match:
+			return first(g, int(match.group(1)))
 		else:
-			m = re.search(('^(' + recompress_symbol + '[0-9]+?' + recompress_symbol + ')').encode('string-escape'), g[index])
-			if m:
-				return m.group(0)
+			match = re.search(('^(' + recompress_symbol + '[0-9]+?' + recompress_symbol + ')').encode('string-escape'), g[index])
+			if match:
+				return match.group(0)
 			else:
 				return g[index][0]
 
@@ -577,57 +578,74 @@ def last(g, index):
 	if g[index] == '':
 		return ''
 	else:
-		m = re.search((nonterminal_symbol + '([0-9]+?)' + nonterminal_symbol + '$').encode('string-escape'), g[index])
-		if m:
-			return last(g, int(m.group(1)))
+		match = re.search((nonterminal_symbol + '([0-9]+?)' + nonterminal_symbol + '$').encode('string-escape'), g[index])
+		if match:
+			return last(g, int(match.group(1)))
 		else:
-			m = re.search(('(' + recompress_symbol + '[0-9]+?' + recompress_symbol + ')$').encode('string-escape'), g[index])
-			if m:
-				return m.group(0)
+			match = re.search(('(' + recompress_symbol + '[0-9]+?' + recompress_symbol + ')$').encode('string-escape'), g[index])
+			if match:
+				return match.group(0)
 			else:
 				return g[index][-1]
 
-def left_pop(g, mn, index):
-	f = first(g, index)
-
-	if f == '':
+def left_pop(g, m, mn, index):
+	if g[index] == '':
 		return
 
-	m = re.search(('^' + nonterminal_symbol + '([0-9]+?)' + nonterminal_symbol).encode('string-escape'), g[index])
-	if m:
-		left_pop(g, mn, int(m.group(1)))
+	f = first(g, index)
+	match = re.search(('^' + nonterminal_symbol + '([0-9]+?)' + nonterminal_symbol).encode('string-escape'), g[index])
+	if match:
+		left_pop(g, m, mn, int(match.group(1)))
 
-	m = re.search(('^(' + recompress_symbol + '[0-9]+?' + recompress_symbol + ')').encode('string-escape'), g[index])
-	if m:
-		g[index] = g[index][len(m.group(0)):]
+	match = re.search(('^(' + recompress_symbol + '[0-9]+?' + recompress_symbol + ')').encode('string-escape'), g[index])
+	if match:
+		g[index] = g[index][len(match.group(0)):]
 	else:
 		g[index] = g[index][1:]
 
-	for i in xrange(mn + 1):
-		g[i] = re.sub((nonterminal_symbol + str(index) + nonterminal_symbol).encode('string-escape'), (f + nonterminal_symbol + str(index) + nonterminal_symbol).encode('string-escape'), g[i])
+	if index < m:
+		for i in xrange(m + 1):
+			g[i] = re.sub((nonterminal_symbol + str(index) + nonterminal_symbol).encode('string-escape'), (f + nonterminal_symbol + str(index) + nonterminal_symbol).encode('string-escape'), g[i])
+	else :
+		for i in xrange(m + 1, mn + 1):
+			g[i] = re.sub((nonterminal_symbol + str(index) + nonterminal_symbol).encode('string-escape'), (f + nonterminal_symbol + str(index) + nonterminal_symbol).encode('string-escape'), g[i])
 
-def right_pop(g, mn, index):
-	l = last(g, index)
-
-	if l == '':
+def right_pop(g, m, mn, index):
+	if g[index] == '':
 		return
 
-	m = re.search((nonterminal_symbol + '([0-9]+?)' + nonterminal_symbol + '$').encode('string-escape'), g[index])
-	if m:
-		right_pop(g, mn, int(m.group(1)))
+	l = last(g, index)
+	match = re.search((nonterminal_symbol + '([0-9]+?)' + nonterminal_symbol + '$').encode('string-escape'), g[index])
+	if match:
+		right_pop(g, m, mn, int(match.group(1)))
 
-	m = re.search(('(' + recompress_symbol + '[0-9]+?' + recompress_symbol + ')$').encode('string-escape'), g[index])
-	if m:
-		g[index] = g[index][:-len(m.group(0))]
+	match = re.search(('(' + recompress_symbol + '[0-9]+?' + recompress_symbol + ')$').encode('string-escape'), g[index])
+	if match:
+		g[index] = g[index][:-len(match.group(0))]
 	else:
 		g[index] = g[index][:-1]
 
-	for i in xrange(mn + 1):
-		g[i] = re.sub((nonterminal_symbol + str(index) + nonterminal_symbol).encode('string-escape'), (nonterminal_symbol + str(index) + nonterminal_symbol + l).encode('string-escape'), g[i])
+	if index < m:
+		for i in xrange(m + 1):
+			g[i] = re.sub((nonterminal_symbol + str(index) + nonterminal_symbol).encode('string-escape'), (nonterminal_symbol + str(index) + nonterminal_symbol + l).encode('string-escape'), g[i])
+	else :
+		for i in xrange(m + 1, mn + 1):
+			g[i] = re.sub((nonterminal_symbol + str(index) + nonterminal_symbol).encode('string-escape'), (nonterminal_symbol + str(index) + nonterminal_symbol + l).encode('string-escape'), g[i])
 
-def remove_nonterminal(g, mn, nonterminal):
-	for i in xrange(mn + 1):
-		g[i] = re.sub((nonterminal_symbol + str(nonterminal) + nonterminal_symbol).encode('string-escape'), '', g[i])
+def remove_nonterminal(g, m, mn, nonterminal):
+	if nonterminal < m:
+		for i in xrange(m + 1):
+			if g[i] == '':
+				continue
+
+			g[i] = re.sub((nonterminal_symbol + str(nonterminal) + nonterminal_symbol).encode('string-escape'), '', g[i])
+
+	else:
+		for i in xrange(m + 1, mn + 1):
+			if g[i] == '':
+				continue
+
+			g[i] = re.sub((nonterminal_symbol + str(nonterminal) + nonterminal_symbol).encode('string-escape'), '', g[i])
 
 ##################################################
 ##################################################
